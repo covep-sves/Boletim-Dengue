@@ -526,14 +526,14 @@ footer{
       <div id="btnsDist"></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title" id="titleDist">Incidência por Distrito Sanitário — 2025</div>
+      <div class="chart-title" id="titleDist">Incidência por Distrito Sanitário — 2024</div>
       <div class="chart-wrap" style="height:320px"><canvas id="chartDist" role="img" aria-label="Incidência por distrito sanitário"></canvas></div>
     </div>
     <div class="note"><strong>Classificação MS:</strong> Baixa &lt;100 · Média 100–300 · Alta &gt;300/100 mil hab.</div>
 
 <!-- ── 5b. MAPA COROPLÉTICO ── -->
   <div class="chart-card" style="padding:1rem">
-    <div class="chart-title" id="titleMapa">Mapa de incidência por Distrito Sanitário — 2025</div>
+    <div class="chart-title" id="titleMapa">Mapa de incidência por Distrito Sanitário — 2024</div>
 
     <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
 
@@ -549,14 +549,15 @@ footer{
           <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:12px;border-radius:2px;background:#16a34a;display:inline-block"></span>Baixa (&lt;100)</span>
           <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:12px;border-radius:2px;background:#ca8a04;display:inline-block"></span>Média (100–300)</span>
           <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:12px;border-radius:2px;background:#dc2626;display:inline-block"></span>Alta (&gt;300)</span>
-          <span style="display:flex;align-items:center;gap:6px"><span style="width:16px;height:12px;border-radius:2px;background:#e5e7eb;border:1px solid #9ca3af;display:inline-block"></span>Sem dados</span>
+
         </div>
 
         <div style="font-weight:600;color:var(--text);margin-bottom:.5rem;font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.04em">Distritos</div>
         <div id="mapLegendList" style="display:flex;flex-direction:column;gap:3px"></div>
 
         <!-- Tooltip fixo -->
-        <div id="mapTooltip" style="display:none;margin-top:1rem;padding:8px 10px;background:rgba(26,25,23,0.92);color:#fff;border-radius:6px;font-size:.73rem;line-height:1.6"></div>
+        <div id="mapTooltip" style="display:none;margin-top:1rem;padding:10px 12px;background:rgba(26,25,23,0.92);color:#fff;border-radius:6px;font-size:.78rem;line-height:1.7;min-width:160px"></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:.5rem;font-family:var(--mono)">📱 Toque no distrito para ver os dados</div>
       </div>
     </div>
   </div>
@@ -935,7 +936,7 @@ function buildDiagrama(year) {
   }
 
   function buildDist(year) {
-    document.getElementById('titleDist').textContent = 'Incidência por Distrito Sanitário — '+year;
+    document.getElementById('titleDist').textContent = 'Mapa de incidência por Distrito Sanitário — '+year;
     const vals = INC_DIST[year];
     if (distChart) { distChart.destroy(); distChart=null; }
     distChart = new Chart(document.getElementById('chartDist'), {
@@ -971,7 +972,7 @@ function buildDiagrama(year) {
     b.addEventListener('click', () => buildDist(y));
     el.appendChild(b);
   });
-  buildDist(2025);
+  buildDist(2024);
 })();
 
 /* ════════════════════════════════════════
@@ -1297,17 +1298,33 @@ function buildDiagrama(year) {
       path.style.cursor = 'pointer';
       path.style.transition = 'fill-opacity .15s';
 
-      path.addEventListener('mouseenter', () => {
+      path.addEventListener('mouseenter', showTip);
+      path.addEventListener('mouseleave', hideTip);
+      path.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (tooltip.style.display === 'block' && tooltip.dataset.dist === nome) {
+          hideTip();
+          tooltip.dataset.dist = '';
+        } else {
+          document.querySelectorAll('#gDist path').forEach(p => {
+            p.setAttribute('fill-opacity','0.82');
+            p.setAttribute('stroke-width','1.8');
+          });
+          showTip();
+          tooltip.dataset.dist = nome;
+        }
+      }, {passive: false});
+      function showTip() {
         path.setAttribute('fill-opacity','1');
         path.setAttribute('stroke-width','2.5');
         tooltip.style.display = 'block';
-        tooltip.innerHTML = `<strong>${NOME_CURTO[nome]||nome}</strong><br>Incidência: ${v!=null?v.toFixed(2)+'/100mil':'Sem dados'}<br>Classificação: ${getClass(v)}`;
-      });
-      path.addEventListener('mouseleave', () => {
+        tooltip.innerHTML = '<strong>'+(NOME_CURTO[nome]||nome)+'</strong><br>Incidência: '+(v!=null?v.toFixed(2)+'/100mil':'Sem dados')+'<br>Classificação: '+getClass(v);
+      }
+      function hideTip() {
         path.setAttribute('fill-opacity','0.82');
         path.setAttribute('stroke-width','1.8');
         tooltip.style.display = 'none';
-      });
+      }
       gDist.appendChild(path);
 
       // Item na legenda lateral
@@ -1335,6 +1352,14 @@ function buildDiagrama(year) {
 
     // Atualizar botões
     document.querySelectorAll('#btnsMapa .year-btn').forEach(b => b.classList.toggle('active', +b.dataset.y===year));
+
+    // Fechar tooltip ao tocar fora do SVG (mobile)
+    document.getElementById('mapSVG').addEventListener('touchend', (e) => {
+      if (e.target.tagName !== 'path') {
+        tooltip.style.display = 'none';
+        tooltip.dataset.dist = '';
+      }
+    });
   }
 
   // Botões de ano (inserir antes do mapa)
@@ -1351,7 +1376,7 @@ function buildDiagrama(year) {
   });
   mapCard.insertBefore(selectorDiv, mapCard.firstChild);
 
-  buildMap(2025);
+  buildMap(2024);
 })();
 
 
